@@ -38,11 +38,6 @@ class ImageProcessorGUI:
                              command=self.load_image)
         load_btn.grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
         
-        # 相對路徑載入按鈕
-        load_relative_btn = ttk.Button(button_frame_load, text="Load rgb.jpg", 
-                                      command=self.load_relative_image)
-        load_relative_btn.grid(row=0, column=1, padx=5, pady=5, sticky=tk.W)
-        
         # (Removed) Load image1.jpg button
         
         # Image path label
@@ -64,10 +59,10 @@ class ImageProcessorGUI:
         self.separation_btn.grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
         
         # 1.2 Color Transformation
-        self.transform_btn = ttk.Button(processing_frame, text="1.2 Color Transformation", 
+        self.color_transform_btn = ttk.Button(processing_frame, text="1.2 Color Transformation", 
                                       command=self.show_color_transform,
                                       state='disabled')
-        self.transform_btn.grid(row=0, column=1, padx=5, pady=5, sticky=tk.W)
+        self.color_transform_btn.grid(row=0, column=1, padx=5, pady=5, sticky=tk.W)
         
         # 2. Image Smoothing section
         smoothing_frame = ttk.LabelFrame(main_frame, text="2. Image Smoothing", padding="10")
@@ -157,14 +152,30 @@ class ImageProcessorGUI:
                                       state='disabled')
         self.transform_btn.grid(row=1, column=0, padx=5, pady=5, sticky=tk.W)
         
+        # 5. Adaptive Threshold section
+        adaptive_frame = ttk.LabelFrame(main_frame, text="5. Adaptive Threshold", padding="10")
+        adaptive_frame.grid(row=8, column=0, columnspan=2, pady=5, sticky=(tk.W, tk.E))
+        
+        # 5.1 Global Threshold
+        self.global_threshold_btn = ttk.Button(adaptive_frame, text="5.1 Global Threshold", 
+                                             command=self.show_global_threshold,
+                                             state='disabled')
+        self.global_threshold_btn.grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
+        
+        # 5.2 Local Threshold
+        self.local_threshold_btn = ttk.Button(adaptive_frame, text="5.2 Local Threshold", 
+                                            command=self.show_local_threshold,
+                                            state='disabled')
+        self.local_threshold_btn.grid(row=0, column=1, padx=5, pady=5, sticky=tk.W)
+        
         # Display frame for matplotlib with scrollbar
         self.display_frame = ttk.Frame(main_frame)
-        self.display_frame.grid(row=8, column=0, columnspan=2, pady=10, sticky=(tk.W, tk.E, tk.N, tk.S))
+        self.display_frame.grid(row=9, column=0, columnspan=2, pady=10, sticky=(tk.W, tk.E, tk.N, tk.S))
         
         # Configure grid weights for resizing
         self.root.grid_rowconfigure(0, weight=1)
         self.root.grid_columnconfigure(0, weight=1)
-        main_frame.grid_rowconfigure(8, weight=1)
+        main_frame.grid_rowconfigure(9, weight=1)
         main_frame.grid_columnconfigure(0, weight=1)
         
         # 設定關閉事件處理
@@ -218,7 +229,7 @@ class ImageProcessorGUI:
             
             # Enable all processing buttons
             self.separation_btn.config(state='normal')
-            self.transform_btn.config(state='normal')
+            self.color_transform_btn.config(state='normal')
             self.gaussian_btn.config(state='normal')
             self.bilateral_btn.config(state='normal')
             self.median_btn.config(state='normal')
@@ -227,6 +238,8 @@ class ImageProcessorGUI:
             self.combination_btn.config(state='normal')
             self.gradient_btn.config(state='normal')
             self.transform_btn.config(state='normal')
+            self.global_threshold_btn.config(state='normal')
+            self.local_threshold_btn.config(state='normal')
             
             messagebox.showinfo("Success", "Image loaded successfully!")
     
@@ -246,7 +259,7 @@ class ImageProcessorGUI:
         
         # Enable all processing buttons
         self.separation_btn.config(state='normal')
-        self.transform_btn.config(state='normal')
+        self.color_transform_btn.config(state='normal')
         self.gaussian_btn.config(state='normal')
         self.bilateral_btn.config(state='normal')
         self.median_btn.config(state='normal')
@@ -255,6 +268,8 @@ class ImageProcessorGUI:
         self.combination_btn.config(state='normal')
         self.gradient_btn.config(state='normal')
         self.transform_btn.config(state='normal')
+        self.global_threshold_btn.config(state='normal')
+        self.local_threshold_btn.config(state='normal')
         
         messagebox.showinfo("Success", f"Successfully loaded {relative_path}!")
     
@@ -283,100 +298,100 @@ class ImageProcessorGUI:
             print(f"Cleanup error: {e}")
     
     def show_color_separation(self):
-        """Display RGB channel separation"""
+        """Display RGB channel separation in popup windows"""
+        import threading
         if self.image is None:
             messagebox.showerror("Error", "Please load an image first!")
             return
         
-        # Clear previous display
-        for widget in self.display_frame.winfo_children():
-            widget.destroy()
-        
-        # Process image for color separation
-        image_rgb = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
-        b, g, r = cv2.split(self.image)
-        
-        # Convert each grayscale channel back to BGR format
-        r_bgr = cv2.merge([np.zeros_like(r), np.zeros_like(r), r])
-        g_bgr = cv2.merge([np.zeros_like(g), g, np.zeros_like(g)])
-        b_bgr = cv2.merge([b, np.zeros_like(b), np.zeros_like(b)])
-        
-        # Convert BGR back to RGB for display
-        r_rgb = cv2.cvtColor(r_bgr, cv2.COLOR_BGR2RGB)
-        g_rgb = cv2.cvtColor(g_bgr, cv2.COLOR_BGR2RGB)
-        b_rgb = cv2.cvtColor(b_bgr, cv2.COLOR_BGR2RGB)
-        
-        # Create matplotlib figure
-        fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-        fig.suptitle('RGB Color Separation', fontsize=18, y=0.95)
-        
-        # 增加子圖之間的間距，特別是垂直間距
-        plt.subplots_adjust(hspace=0.6, wspace=0.3)
-        
-        # Display images
-        axes[0, 0].imshow(image_rgb)
-        axes[0, 0].set_title('Original RGB Image', fontsize=14, pad=20)
-        axes[0, 0].axis('off')
-        
-        axes[0, 1].imshow(r_rgb)
-        axes[0, 1].set_title('R Channel (Red)', fontsize=14, pad=20)
-        axes[0, 1].axis('off')
-        
-        axes[1, 0].imshow(g_rgb)
-        axes[1, 0].set_title('G Channel (Green)', fontsize=14, pad=20)
-        axes[1, 0].axis('off')
-        
-        axes[1, 1].imshow(b_rgb)
-        axes[1, 1].set_title('B Channel (Blue)', fontsize=14, pad=20)
-        axes[1, 1].axis('off')
-        
-        # Embed matplotlib in tkinter
-        canvas = FigureCanvasTkAgg(fig, self.display_frame)
-        canvas.draw()
-        canvas.get_tk_widget().pack()
+        def display_color_separation():
+            # Process image for color separation
+            image_rgb = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
+            b, g, r = cv2.split(self.image)
+            
+            # Convert each grayscale channel back to BGR format
+            r_bgr = cv2.merge([np.zeros_like(r), np.zeros_like(r), r])
+            g_bgr = cv2.merge([np.zeros_like(g), g, np.zeros_like(g)])
+            b_bgr = cv2.merge([b, np.zeros_like(b), np.zeros_like(b)])
+            
+            # Convert BGR back to RGB for display
+            r_rgb = cv2.cvtColor(r_bgr, cv2.COLOR_BGR2RGB)
+            g_rgb = cv2.cvtColor(g_bgr, cv2.COLOR_BGR2RGB)
+            b_rgb = cv2.cvtColor(b_bgr, cv2.COLOR_BGR2RGB)
+            
+            # Create OpenCV windows
+            win_names = ['Original RGB', 'R Channel', 'G Channel', 'B Channel']
+            images = [image_rgb, r_rgb, g_rgb, b_rgb]
+            
+            # Create and position windows
+            for i, (win_name, img) in enumerate(zip(win_names, images)):
+                cv2.namedWindow(win_name, cv2.WINDOW_NORMAL)
+                cv2.resizeWindow(win_name, 400, 400)
+                # Position windows in 2x2 grid
+                x_pos = 100 + (i % 2) * 450
+                y_pos = 100 + (i // 2) * 450
+                cv2.moveWindow(win_name, x_pos, y_pos)
+                cv2.imshow(win_name, img)
+            
+            # Wait for windows to be closed or ESC key
+            while True:
+                key = cv2.waitKey(30) & 0xFF
+                if key == 27:  # ESC key closes all windows
+                    break
+                # Check if any window is closed
+                if any(cv2.getWindowProperty(name, cv2.WND_PROP_VISIBLE) < 1 for name in win_names):
+                    break
+            
+            # Close all windows
+            for win_name in win_names:
+                cv2.destroyWindow(win_name)
+
+        threading.Thread(target=display_color_separation, daemon=True).start()
     
     def show_color_transform(self):
-        """Display grayscale transformations"""
+        """Display grayscale transformations in popup windows"""
+        import threading
         if self.image is None:
             messagebox.showerror("Error", "Please load an image first!")
             return
         
-        # Clear previous display
-        for widget in self.display_frame.winfo_children():
-            widget.destroy()
-        
-        # Process image for color transform
-        image_rgb = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
-        b, g, r = cv2.split(self.image)
-        
-        # Create grayscale images
-        cv_gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
-        avg_gray = (b/3 + g/3 + r/3).astype(np.uint8)
-        
-        # Create matplotlib figure
-        fig, axes = plt.subplots(1, 3, figsize=(18, 8))
-        fig.suptitle('Color Transform - Grayscale Conversion', fontsize=18, y=0.95)
-        
-        # 增加子圖之間的間距
-        plt.subplots_adjust(hspace=0.3, wspace=0.3)
-        
-        # Display images
-        axes[0].imshow(image_rgb)
-        axes[0].set_title('Original RGB Image', fontsize=14, pad=20)
-        axes[0].axis('off')
-        
-        axes[1].imshow(cv_gray, cmap='gray')
-        axes[1].set_title('OpenCV Grayscale\n(cv2.cvtColor)', fontsize=14, pad=20)
-        axes[1].axis('off')
-        
-        axes[2].imshow(avg_gray, cmap='gray')
-        axes[2].set_title('Average Grayscale\n((R+G+B)/3)', fontsize=14, pad=20)
-        axes[2].axis('off')
-        
-        # Embed matplotlib in tkinter
-        canvas = FigureCanvasTkAgg(fig, self.display_frame)
-        canvas.draw()
-        canvas.get_tk_widget().pack()
+        def display_color_transform():
+            # Process image for color transform
+            image_rgb = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
+            b, g, r = cv2.split(self.image)
+            
+            # Create grayscale images
+            cv_gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
+            avg_gray = (b/3 + g/3 + r/3).astype(np.uint8)
+            
+            # Create OpenCV windows
+            win_names = ['Original RGB', 'OpenCV Grayscale', 'Average Grayscale']
+            images = [image_rgb, cv_gray, avg_gray]
+            
+            # Create and position windows
+            for i, (win_name, img) in enumerate(zip(win_names, images)):
+                cv2.namedWindow(win_name, cv2.WINDOW_NORMAL)
+                cv2.resizeWindow(win_name, 500, 400)
+                # Position windows horizontally
+                x_pos = 100 + i * 550
+                y_pos = 100
+                cv2.moveWindow(win_name, x_pos, y_pos)
+                cv2.imshow(win_name, img)
+            
+            # Wait for windows to be closed or ESC key
+            while True:
+                key = cv2.waitKey(30) & 0xFF
+                if key == 27:  # ESC key closes all windows
+                    break
+                # Check if any window is closed
+                if any(cv2.getWindowProperty(name, cv2.WND_PROP_VISIBLE) < 1 for name in win_names):
+                    break
+            
+            # Close all windows
+            for win_name in win_names:
+                cv2.destroyWindow(win_name)
+
+        threading.Thread(target=display_color_transform, daemon=True).start()
     
     # Image Smoothing Functions
     def show_gaussian_blur(self):
@@ -557,7 +572,7 @@ class ImageProcessorGUI:
         if self.image is None:
             messagebox.showerror("Error", "Please load an image first!")
             return
-
+        
         def display_single_window(window_name, img, x_pos, y_pos):
             """Display a single image in its own window with independent control"""
             cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
@@ -635,7 +650,7 @@ class ImageProcessorGUI:
         if self.image is None:
             messagebox.showerror("Error", "Please load an image first!")
             return
-
+        
         def display_single_window(window_name, img, x_pos, y_pos):
             """Display a single image in its own window with independent control"""
             cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
@@ -768,6 +783,120 @@ class ImageProcessorGUI:
             messagebox.showerror("Error", "Please enter valid numeric values for all parameters!")
         except Exception as e:
             messagebox.showerror("Error", f"Transformation failed: {str(e)}")
+    
+    def show_global_threshold(self):
+        """Display Global Threshold results for QR.png in popup window"""
+        import threading
+        try:
+            # Load QR.png
+            qr_path = 'Dataset_OpenCvDl_Hw1/Q5_image/QR.png'
+            img = cv2.imread(qr_path)
+            
+            if img is None:
+                messagebox.showerror("Error", f"Could not load {qr_path}!")
+                return
+            
+            def display_global_threshold():
+                # 1) Convert QR.png to grayscale
+                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                
+                # 2) Apply global threshold function: threshold_image = cv2.threshold(gray, 80, 255, cv2.THRESH_BINARY)
+                _, threshold_image = cv2.threshold(gray, 80, 255, cv2.THRESH_BINARY)
+                
+                # Create OpenCV windows
+                win_name_original = 'Original Grayscale'
+                win_name_result = 'Global Threshold Result'
+                
+                cv2.namedWindow(win_name_original, cv2.WINDOW_NORMAL)
+                cv2.namedWindow(win_name_result, cv2.WINDOW_NORMAL)
+                
+                cv2.resizeWindow(win_name_original, 600, 600)
+                cv2.resizeWindow(win_name_result, 600, 600)
+                
+                # Position windows side by side
+                cv2.moveWindow(win_name_original, 100, 100)
+                cv2.moveWindow(win_name_result, 750, 100)
+                
+                # Display images
+                cv2.imshow(win_name_original, gray)
+                cv2.imshow(win_name_result, threshold_image)
+                
+                # Wait for windows to be closed or ESC key
+                while True:
+                    key = cv2.waitKey(30) & 0xFF
+                    if key == 27:  # ESC key closes all windows
+                        break
+                    # Check if any window is closed
+                    if (cv2.getWindowProperty(win_name_original, cv2.WND_PROP_VISIBLE) < 1 or
+                        cv2.getWindowProperty(win_name_result, cv2.WND_PROP_VISIBLE) < 1):
+                        break
+                
+                # Close all windows
+                cv2.destroyWindow(win_name_original)
+                cv2.destroyWindow(win_name_result)
+            
+            # Run in separate thread to avoid blocking GUI
+            threading.Thread(target=display_global_threshold, daemon=True).start()
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Global threshold failed: {str(e)}")
+    
+    def show_local_threshold(self):
+        """Display Local (Adaptive) Threshold results for QR.png in popup window"""
+        import threading
+        try:
+            # Load QR.png
+            qr_path = 'Dataset_OpenCvDl_Hw1/Q5_image/QR.png'
+            img = cv2.imread(qr_path)
+            
+            if img is None:
+                messagebox.showerror("Error", f"Could not load {qr_path}!")
+                return
+            
+            def display_local_threshold():
+                # 1) Convert QR.png to grayscale
+                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                
+                # 2) Apply adaptive threshold function: threshold_image = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 19, -1)
+                threshold_image = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 19, -1)
+                
+                # Create OpenCV windows
+                win_name_original = 'Original Grayscale'
+                win_name_result = 'Adaptive Threshold Result'
+                
+                cv2.namedWindow(win_name_original, cv2.WINDOW_NORMAL)
+                cv2.namedWindow(win_name_result, cv2.WINDOW_NORMAL)
+                
+                cv2.resizeWindow(win_name_original, 600, 600)
+                cv2.resizeWindow(win_name_result, 600, 600)
+                
+                # Position windows side by side
+                cv2.moveWindow(win_name_original, 100, 100)
+                cv2.moveWindow(win_name_result, 750, 100)
+        
+        # Display images
+                cv2.imshow(win_name_original, gray)
+                cv2.imshow(win_name_result, threshold_image)
+                
+                # Wait for windows to be closed or ESC key
+                while True:
+                    key = cv2.waitKey(30) & 0xFF
+                    if key == 27:  # ESC key closes all windows
+                        break
+                    # Check if any window is closed
+                    if (cv2.getWindowProperty(win_name_original, cv2.WND_PROP_VISIBLE) < 1 or
+                        cv2.getWindowProperty(win_name_result, cv2.WND_PROP_VISIBLE) < 1):
+                        break
+                
+                # Close all windows
+                cv2.destroyWindow(win_name_original)
+                cv2.destroyWindow(win_name_result)
+            
+            # Run in separate thread to avoid blocking GUI
+            threading.Thread(target=display_local_threshold, daemon=True).start()
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Local threshold failed: {str(e)}")
 
 def main():
     try:
