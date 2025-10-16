@@ -119,14 +119,52 @@ class ImageProcessorGUI:
                                      state='disabled')
         self.gradient_btn.grid(row=1, column=1, padx=5, pady=5, sticky=tk.W)
         
+        # 4. Transforms section
+        transforms_frame = ttk.LabelFrame(main_frame, text="4. Transforms", padding="10")
+        transforms_frame.grid(row=7, column=0, columnspan=2, pady=5, sticky=(tk.W, tk.E))
+        
+        # Create input frame for parameters
+        input_frame = ttk.Frame(transforms_frame)
+        input_frame.grid(row=0, column=0, columnspan=2, pady=5, sticky=(tk.W, tk.E))
+        
+        # Rotation input
+        ttk.Label(input_frame, text="Rotation:").grid(row=0, column=0, padx=(0, 5), sticky=tk.W)
+        self.rotation_var = tk.StringVar(value="30")
+        self.rotation_entry = ttk.Entry(input_frame, textvariable=self.rotation_var, width=10)
+        self.rotation_entry.grid(row=0, column=1, padx=5, pady=2, sticky=tk.W)
+        
+        # Scaling input
+        ttk.Label(input_frame, text="Scaling:").grid(row=0, column=2, padx=(20, 5), sticky=tk.W)
+        self.scaling_var = tk.StringVar(value="0.9")
+        self.scaling_entry = ttk.Entry(input_frame, textvariable=self.scaling_var, width=10)
+        self.scaling_entry.grid(row=0, column=3, padx=5, pady=2, sticky=tk.W)
+        
+        # Tx input
+        ttk.Label(input_frame, text="Tx:").grid(row=1, column=0, padx=(0, 5), pady=(5, 0), sticky=tk.W)
+        self.tx_var = tk.StringVar(value="535")
+        self.tx_entry = ttk.Entry(input_frame, textvariable=self.tx_var, width=10)
+        self.tx_entry.grid(row=1, column=1, padx=5, pady=(5, 0), sticky=tk.W)
+        
+        # Ty input
+        ttk.Label(input_frame, text="Ty:").grid(row=1, column=2, padx=(20, 5), pady=(5, 0), sticky=tk.W)
+        self.ty_var = tk.StringVar(value="335")
+        self.ty_entry = ttk.Entry(input_frame, textvariable=self.ty_var, width=10)
+        self.ty_entry.grid(row=1, column=3, padx=5, pady=(5, 0), sticky=tk.W)
+        
+        # Transform button
+        self.transform_btn = ttk.Button(transforms_frame, text="Transform", 
+                                      command=self.apply_transform,
+                                      state='disabled')
+        self.transform_btn.grid(row=1, column=0, padx=5, pady=5, sticky=tk.W)
+        
         # Display frame for matplotlib with scrollbar
         self.display_frame = ttk.Frame(main_frame)
-        self.display_frame.grid(row=7, column=0, columnspan=2, pady=10, sticky=(tk.W, tk.E, tk.N, tk.S))
+        self.display_frame.grid(row=8, column=0, columnspan=2, pady=10, sticky=(tk.W, tk.E, tk.N, tk.S))
         
         # Configure grid weights for resizing
         self.root.grid_rowconfigure(0, weight=1)
         self.root.grid_columnconfigure(0, weight=1)
-        main_frame.grid_rowconfigure(7, weight=1)
+        main_frame.grid_rowconfigure(8, weight=1)
         main_frame.grid_columnconfigure(0, weight=1)
         
         # 設定關閉事件處理
@@ -188,6 +226,7 @@ class ImageProcessorGUI:
             self.sobel_y_btn.config(state='normal')
             self.combination_btn.config(state='normal')
             self.gradient_btn.config(state='normal')
+            self.transform_btn.config(state='normal')
             
             messagebox.showinfo("Success", "Image loaded successfully!")
     
@@ -215,6 +254,7 @@ class ImageProcessorGUI:
         self.sobel_y_btn.config(state='normal')
         self.combination_btn.config(state='normal')
         self.gradient_btn.config(state='normal')
+        self.transform_btn.config(state='normal')
         
         messagebox.showinfo("Success", f"Successfully loaded {relative_path}!")
     
@@ -512,103 +552,222 @@ class ImageProcessorGUI:
         threading.Thread(target=popup_worker, args=(self.image.copy(),), daemon=True).start()
     
     def show_combination_threshold(self):
-        """Display Sobel Combination and Threshold"""
+        """Display three separate windows: Combination, Threshold=128, Threshold=28"""
+        import threading
         if self.image is None:
             messagebox.showerror("Error", "Please load an image first!")
             return
-        
-        # Clear previous display
-        for widget in self.display_frame.winfo_children():
-            widget.destroy()
-        
-        # Convert to grayscale
-        gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
-        
-        # Apply Sobel X and Y
-        sobel_x = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
-        sobel_y = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
-        
-        # Calculate magnitude
-        magnitude = np.sqrt(sobel_x**2 + sobel_y**2)
-        magnitude = np.uint8(magnitude)
-        
-        # Apply threshold
-        _, threshold = cv2.threshold(magnitude, 50, 255, cv2.THRESH_BINARY)
-        
-        # Create matplotlib figure
-        fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-        fig.suptitle('Sobel Combination and Threshold', fontsize=18, y=0.95)
-        plt.subplots_adjust(hspace=0.6, wspace=0.3)
-        
-        # Display images
-        axes[0, 0].imshow(gray, cmap='gray')
-        axes[0, 0].set_title('Original Grayscale', fontsize=14, pad=20)
-        axes[0, 0].axis('off')
-        
-        axes[0, 1].imshow(magnitude, cmap='gray')
-        axes[0, 1].set_title('Sobel Magnitude', fontsize=14, pad=20)
-        axes[0, 1].axis('off')
-        
-        axes[1, 0].imshow(threshold, cmap='gray')
-        axes[1, 0].set_title('Threshold (50)', fontsize=14, pad=20)
-        axes[1, 0].axis('off')
-        
-        # Show different threshold values
-        _, threshold_100 = cv2.threshold(magnitude, 100, 255, cv2.THRESH_BINARY)
-        axes[1, 1].imshow(threshold_100, cmap='gray')
-        axes[1, 1].set_title('Threshold (100)', fontsize=14, pad=20)
-        axes[1, 1].axis('off')
-        
-        # Embed matplotlib in tkinter
-        canvas = FigureCanvasTkAgg(fig, self.display_frame)
-        canvas.draw()
-        canvas.get_tk_widget().pack()
+
+        def display_single_window(window_name, img, x_pos, y_pos):
+            """Display a single image in its own window with independent control"""
+            cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+            cv2.resizeWindow(window_name, 600, 450)
+            cv2.moveWindow(window_name, x_pos, y_pos)
+            cv2.imshow(window_name, img)
+            
+            # Keep window open until closed or ESC is pressed
+            while True:
+                key = cv2.waitKey(30) & 0xFF
+                if key == 27:  # ESC key closes this window only
+                    break
+                # Check if window was closed by user
+                if cv2.getWindowProperty(window_name, cv2.WND_PROP_VISIBLE) < 1:
+                    break
+            
+            # Close only this specific window
+            cv2.destroyWindow(window_name)
+
+        def process_and_display(img_bgr):
+            # Convert to grayscale
+            gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+            
+            # Apply Sobel X and Y
+            sobel_x = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
+            sobel_y = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
+            
+            # Calculate combination: √(Sobel_X² + Sobel_Y²)
+            combination = np.sqrt(sobel_x**2 + sobel_y**2)
+            
+            # Normalize combination to 0-255 range (standard approach)
+            combination_normalized = cv2.normalize(combination, None, 0, 255, cv2.NORM_MINMAX)
+            combination_normalized = np.uint8(combination_normalized)
+            
+            # Apply different thresholds to the normalized combination
+            _, result_128 = cv2.threshold(combination_normalized, 128, 255, cv2.THRESH_BINARY)
+            _, result_28 = cv2.threshold(combination_normalized, 28, 255, cv2.THRESH_BINARY)
+            
+            # Define window positions to avoid overlapping
+            start_x = 100
+            start_y = 100
+            window_width = 600
+            window_height = 450
+            spacing = 50
+            
+            # Create three independent threads for three windows
+            thread1 = threading.Thread(
+                target=display_single_window,
+                args=("Combination of Sobel x and Sobel y", combination_normalized, start_x, start_y),
+                daemon=True
+            )
+            
+            thread2 = threading.Thread(
+                target=display_single_window,
+                args=("O/P (1): Threshold=128", result_128, start_x + window_width + spacing, start_y),
+                daemon=True
+            )
+            
+            thread3 = threading.Thread(
+                target=display_single_window,
+                args=("O/P (2): Threshold=28", result_28, start_x + 2 * (window_width + spacing), start_y),
+                daemon=True
+            )
+            
+            # Start all threads
+            thread1.start()
+            thread2.start()
+            thread3.start()
+
+        threading.Thread(target=process_and_display, args=(self.image.copy(),), daemon=True).start()
     
     def show_gradient_angle(self):
-        """Display Gradient Angle"""
+        """Display Gradient Angle with specific angle ranges and bitwise operations"""
+        import threading
         if self.image is None:
             messagebox.showerror("Error", "Please load an image first!")
             return
-        
-        # Clear previous display
-        for widget in self.display_frame.winfo_children():
-            widget.destroy()
-        
-        # Convert to grayscale
-        gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
-        
-        # Apply Sobel X and Y
-        sobel_x = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
-        sobel_y = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
-        
-        # Calculate gradient angle
-        gradient_angle = np.arctan2(sobel_y, sobel_x)
-        gradient_angle_degrees = np.degrees(gradient_angle)
-        
-        # Normalize for display
-        gradient_angle_normalized = (gradient_angle_degrees + 180) / 360
-        
-        # Create matplotlib figure
-        fig, axes = plt.subplots(1, 2, figsize=(12, 6))
-        fig.suptitle('Gradient Angle Visualization', fontsize=18, y=0.95)
-        plt.subplots_adjust(hspace=0.3, wspace=0.3)
-        
-        # Display images
-        axes[0].imshow(gray, cmap='gray')
-        axes[0].set_title('Original Grayscale', fontsize=14, pad=20)
-        axes[0].axis('off')
-        
-        im = axes[1].imshow(gradient_angle_normalized, cmap='hsv')
-        axes[1].set_title('Gradient Angle (HSV Color Map)', fontsize=14, pad=20)
-        axes[1].axis('off')
-        
-        # Add colorbar
-        plt.colorbar(im, ax=axes[1], fraction=0.046, pad=0.04)
-        
-        # Embed matplotlib in tkinter
-        canvas = FigureCanvasTkAgg(fig, self.display_frame)
-        canvas.draw()
-        canvas.get_tk_widget().pack()
+
+        def display_single_window(window_name, img, x_pos, y_pos):
+            """Display a single image in its own window with independent control"""
+            cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+            cv2.resizeWindow(window_name, 600, 450)
+            cv2.moveWindow(window_name, x_pos, y_pos)
+            cv2.imshow(window_name, img)
+            
+            # Keep window open until closed or ESC is pressed
+            while True:
+                key = cv2.waitKey(30) & 0xFF
+                if key == 27:  # ESC key closes this window only
+                    break
+                # Check if window was closed by user
+                if cv2.getWindowProperty(window_name, cv2.WND_PROP_VISIBLE) < 1:
+                    break
+            
+            # Close only this specific window
+            cv2.destroyWindow(window_name)
+
+        def process_and_display(img_bgr):
+            # Convert to grayscale
+            gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+            
+            # Apply Sobel X and Y
+            sobel_x = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
+            sobel_y = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
+            
+            # Calculate gradient angle: θ = arctan(Sobel_Y / Sobel_X)
+            gradient_angle = np.arctan2(sobel_y, sobel_x)
+            gradient_angle_degrees = np.degrees(gradient_angle)
+            
+            # Convert to 0-360 range for easier angle range checking
+            gradient_angle_360 = (gradient_angle_degrees + 360) % 360
+            
+            # Create mask for range 170°~190°
+            mask_170_190 = ((gradient_angle_360 >= 170) & (gradient_angle_360 <= 190)).astype(np.uint8) * 255
+            
+            # Create mask for range 260°~280°
+            mask_260_280 = ((gradient_angle_360 >= 260) & (gradient_angle_360 <= 280)).astype(np.uint8) * 255
+            
+            # Generate results using cv2.bitwise_and
+            result_170_190 = cv2.bitwise_and(gray, mask_170_190)
+            result_260_280 = cv2.bitwise_and(gray, mask_260_280)
+            
+            # Define window positions to avoid overlapping
+            start_x = 100
+            start_y = 100
+            window_width = 600
+            window_height = 450
+            spacing = 50
+            
+            # Create two independent threads for two windows
+            thread1 = threading.Thread(
+                target=display_single_window,
+                args=("Gradient Angle (170~190)", result_170_190, start_x, start_y),
+                daemon=True
+            )
+            
+            thread2 = threading.Thread(
+                target=display_single_window,
+                args=("Gradient Angle (260~280)", result_260_280, start_x + window_width + spacing, start_y),
+                daemon=True
+            )
+            
+            # Start both threads
+            thread1.start()
+            thread2.start()
+
+        threading.Thread(target=process_and_display, args=(self.image.copy(),), daemon=True).start()
+    
+    def apply_transform(self):
+        """Apply geometric transformation to burger.png with specific parameters"""
+        import threading
+        try:
+            # Load burger.png
+            burger_path = 'Dataset_OpenCvDl_Hw1/Q4_image/burger.png'
+            img = cv2.imread(burger_path)
+            
+            if img is None:
+                messagebox.showerror("Error", f"Could not load {burger_path}!")
+                return
+            
+            # Get input values (default values should be set)
+            rotation = float(self.rotation_var.get()) if self.rotation_var.get() else 30.0
+            scaling = float(self.scaling_var.get()) if self.scaling_var.get() else 0.9
+            tx = float(self.tx_var.get()) if self.tx_var.get() else 535.0
+            ty = float(self.ty_var.get()) if self.ty_var.get() else 335.0
+            
+            def display_transformed_image():
+                # Get image dimensions (1920x1080)
+                h, w = img.shape[:2]
+                
+                # Original center point of burger: C(240, 200)
+                # Target center point: C'(775, 535)
+                
+                # Create transformation matrix
+                # Step 1: Create rotation and scaling matrix around original center (240, 200)
+                center = (240, 200)  # Original burger center
+                M = cv2.getRotationMatrix2D(center, rotation, scaling)
+                
+                # Step 2: Calculate translation to move center from (240,200) to (775,535)
+                M[0, 2] += 535  # Move X by 535 pixels
+                M[1, 2] += 335  # Move Y by 335 pixels
+                
+                # Apply transformation using cv2.warpAffine
+                result = cv2.warpAffine(img, M, (w, h))
+                
+                # Create OpenCV window
+                win_name = 'Transformed Burger'
+                cv2.namedWindow(win_name, cv2.WINDOW_NORMAL)
+                cv2.resizeWindow(win_name, 1200, 675)  # Maintain aspect ratio (16:9)
+                cv2.imshow(win_name, result)
+                
+                # Wait for window to be closed or ESC key
+                while True:
+                    key = cv2.waitKey(30) & 0xFF
+                    if key == 27:  # ESC key closes window
+                        break
+                    # Check if window was closed by user
+                    if cv2.getWindowProperty(win_name, cv2.WND_PROP_VISIBLE) < 1:
+                        break
+                
+                # Close window
+                cv2.destroyWindow(win_name)
+            
+            # Run in separate thread to avoid blocking GUI
+            threading.Thread(target=display_transformed_image, daemon=True).start()
+            
+        except ValueError:
+            messagebox.showerror("Error", "Please enter valid numeric values for all parameters!")
+        except Exception as e:
+            messagebox.showerror("Error", f"Transformation failed: {str(e)}")
 
 def main():
     try:
