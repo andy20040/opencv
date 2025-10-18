@@ -784,16 +784,36 @@ class ImageProcessorGUI:
     def show_global_threshold(self):
         """Display Global Threshold results for QR.png in popup window"""
         import threading
+        import time
         
         if self.image is None:
             messagebox.showerror("Error", "Please load an image first!")
             return
             
         try:
-            # 使用已載入的圖片
+ 
             img = self.image.copy()
             
             def display_global_threshold():
+                # 窗口名稱
+                win_name_original = 'Original Grayscale'
+                win_name_result = 'Global Threshold Result'
+                
+                # 先銷毀可能存在的舊窗口（檢查窗口是否存在）
+                try:
+                    if cv2.getWindowProperty(win_name_original, cv2.WND_PROP_VISIBLE) >= 0:
+                        cv2.destroyWindow(win_name_original)
+                except:
+                    pass
+                
+                try:
+                    if cv2.getWindowProperty(win_name_result, cv2.WND_PROP_VISIBLE) >= 0:
+                        cv2.destroyWindow(win_name_result)
+                except:
+                    pass
+                
+                cv2.waitKey(1)  # 讓系統有時間處理銷毀操作
+                
                 # 1) Convert QR.png to grayscale
                 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                 
@@ -801,9 +821,6 @@ class ImageProcessorGUI:
                 _, threshold_image = cv2.threshold(gray, 80, 255, cv2.THRESH_BINARY)
                 
                 # Create OpenCV windows
-                win_name_original = 'Original Grayscale'
-                win_name_result = 'Global Threshold Result'
-                
                 cv2.namedWindow(win_name_original, cv2.WINDOW_NORMAL)
                 cv2.namedWindow(win_name_result, cv2.WINDOW_NORMAL)
                 
@@ -841,16 +858,36 @@ class ImageProcessorGUI:
     def show_local_threshold(self):
         """Display Local (Adaptive) Threshold results for QR.png in popup window"""
         import threading
+        import time
         
         if self.image is None:
             messagebox.showerror("Error", "Please load an image first!")
             return
             
         try:
-            # 使用已載入的圖片
+          
             img = self.image.copy()
             
             def display_local_threshold():
+                # 窗口名稱
+                win_name_original = 'Original Grayscale'
+                win_name_result = 'Adaptive Threshold Result'
+                
+                # 先銷毀可能存在的舊窗口（檢查窗口是否存在）
+                try:
+                    if cv2.getWindowProperty(win_name_original, cv2.WND_PROP_VISIBLE) >= 0:
+                        cv2.destroyWindow(win_name_original)
+                except:
+                    pass
+                
+                try:
+                    if cv2.getWindowProperty(win_name_result, cv2.WND_PROP_VISIBLE) >= 0:
+                        cv2.destroyWindow(win_name_result)
+                except:
+                    pass
+                
+                cv2.waitKey(1)  # 讓系統有時間處理銷毀操作
+                
                 # 1) Convert QR.png to grayscale
                 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                 
@@ -858,9 +895,6 @@ class ImageProcessorGUI:
                 threshold_image = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 19, -1)
                 
                 # Create OpenCV windows
-                win_name_original = 'Original Grayscale'
-                win_name_result = 'Adaptive Threshold Result'
-                
                 cv2.namedWindow(win_name_original, cv2.WINDOW_NORMAL)
                 cv2.namedWindow(win_name_result, cv2.WINDOW_NORMAL)
                 
@@ -905,7 +939,7 @@ def main():
     except Exception as e:
         print(f"程式錯誤: {e}")
     finally:
-        # 確保清理所有資源
+
         try:
             cv2.destroyAllWindows()
             plt.close('all')
