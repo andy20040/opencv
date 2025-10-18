@@ -178,10 +178,9 @@ class ImageProcessorGUI:
         main_frame.grid_rowconfigure(9, weight=1)
         main_frame.grid_columnconfigure(0, weight=1)
         
-        # 設定關閉事件處理
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
         
-        # 註冊清理函數
+
         atexit.register(self.cleanup)
         
     def load_image(self):
@@ -192,27 +191,25 @@ class ImageProcessorGUI:
         )
         
         if file_path:
-            # 嘗試多種路徑方式載入圖片
+
             self.image_path = file_path
             
-            # 方法1: 直接載入
+
             self.image = cv2.imread(file_path)
-            
-            # 方法2: 如果失敗，嘗試使用相對路徑
+
             if self.image is None:
                 import os
-                # 取得檔案名稱
+  
                 filename = os.path.basename(file_path)
-                # 嘗試從當前目錄載入
+        
                 self.image = cv2.imread(filename)
                 if self.image is not None:
                     self.image_path = filename
-            
-            # 方法3: 如果還是失敗，嘗試使用中文編碼
+         
             if self.image is None:
                 try:
                     import numpy as np
-                    # 使用numpy讀取，然後轉換
+            
                     with open(file_path, 'rb') as f:
                         data = f.read()
                     nparr = np.frombuffer(data, np.uint8)
@@ -245,7 +242,7 @@ class ImageProcessorGUI:
     
     def load_relative_image(self):
         """Load image using relative path (解決中文路徑問題)"""
-        # 嘗試載入當前目錄下的 rgb.jpg
+
         relative_path = 'rgb.jpg'
         self.image_path = relative_path
         self.image = cv2.imread(relative_path)
@@ -284,13 +281,13 @@ class ImageProcessorGUI:
     def cleanup(self):
         """清理資源"""
         try:
-            # 關閉所有OpenCV窗口
+      
             cv2.destroyAllWindows()
             
-            # 關閉matplotlib圖形
+       
             plt.close('all')
             
-            # 清理顯示框架
+      
             for widget in self.display_frame.winfo_children():
                 widget.destroy()
                 
@@ -305,35 +302,35 @@ class ImageProcessorGUI:
             return
         
         def display_color_separation():
-            # Process image for color separation
+        
             image_rgb = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
             b, g, r = cv2.split(self.image)
             
-            # Convert each grayscale channel back to BGR format
+     
             r_bgr = cv2.merge([np.zeros_like(r), np.zeros_like(r), r])
             g_bgr = cv2.merge([np.zeros_like(g), g, np.zeros_like(g)])
             b_bgr = cv2.merge([b, np.zeros_like(b), np.zeros_like(b)])
             
-            # Convert BGR back to RGB for display
+          
             r_rgb = cv2.cvtColor(r_bgr, cv2.COLOR_BGR2RGB)
             g_rgb = cv2.cvtColor(g_bgr, cv2.COLOR_BGR2RGB)
             b_rgb = cv2.cvtColor(b_bgr, cv2.COLOR_BGR2RGB)
             
-            # Create OpenCV windows
+          
             win_names = ['Original RGB', 'R Channel', 'G Channel', 'B Channel']
             images = [image_rgb, r_rgb, g_rgb, b_rgb]
             
-            # Create and position windows
+        
             for i, (win_name, img) in enumerate(zip(win_names, images)):
                 cv2.namedWindow(win_name, cv2.WINDOW_NORMAL)
                 cv2.resizeWindow(win_name, 400, 400)
-                # Position windows in 2x2 grid
+        
                 x_pos = 100 + (i % 2) * 450
                 y_pos = 100 + (i // 2) * 450
                 cv2.moveWindow(win_name, x_pos, y_pos)
                 cv2.imshow(win_name, img)
             
-            # Wait for windows to be closed or ESC key
+       
             while True:
                 key = cv2.waitKey(30) & 0xFF
                 if key == 27:  # ESC key closes all windows
@@ -724,14 +721,14 @@ class ImageProcessorGUI:
     def apply_transform(self):
         """Apply geometric transformation to burger.png with specific parameters"""
         import threading
-        try:
-            # Load burger.png
-            burger_path = 'Dataset_OpenCvDl_Hw1/Q4_image/burger.png'
-            img = cv2.imread(burger_path)
+        
+        if self.image is None:
+            messagebox.showerror("Error", "Please load an image first!")
+            return
             
-            if img is None:
-                messagebox.showerror("Error", f"Could not load {burger_path}!")
-                return
+        try:
+            # 使用已載入的圖片
+            img = self.image.copy()
             
             # Get input values (default values should be set)
             rotation = float(self.rotation_var.get()) if self.rotation_var.get() else 30.0
@@ -787,14 +784,14 @@ class ImageProcessorGUI:
     def show_global_threshold(self):
         """Display Global Threshold results for QR.png in popup window"""
         import threading
-        try:
-            # Load QR.png
-            qr_path = 'Dataset_OpenCvDl_Hw1/Q5_image/QR.png'
-            img = cv2.imread(qr_path)
+        
+        if self.image is None:
+            messagebox.showerror("Error", "Please load an image first!")
+            return
             
-            if img is None:
-                messagebox.showerror("Error", f"Could not load {qr_path}!")
-                return
+        try:
+            # 使用已載入的圖片
+            img = self.image.copy()
             
             def display_global_threshold():
                 # 1) Convert QR.png to grayscale
@@ -844,14 +841,14 @@ class ImageProcessorGUI:
     def show_local_threshold(self):
         """Display Local (Adaptive) Threshold results for QR.png in popup window"""
         import threading
-        try:
-            # Load QR.png
-            qr_path = 'Dataset_OpenCvDl_Hw1/Q5_image/QR.png'
-            img = cv2.imread(qr_path)
+        
+        if self.image is None:
+            messagebox.showerror("Error", "Please load an image first!")
+            return
             
-            if img is None:
-                messagebox.showerror("Error", f"Could not load {qr_path}!")
-                return
+        try:
+            # 使用已載入的圖片
+            img = self.image.copy()
             
             def display_local_threshold():
                 # 1) Convert QR.png to grayscale
