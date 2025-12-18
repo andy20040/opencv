@@ -1,4 +1,5 @@
 import sys
+import os
 import cv2
 import numpy as np
 import torch
@@ -114,11 +115,14 @@ class MainWindow(QMainWindow):
     def show_lenet_acc_loss(self):
         # [cite: 142] 顯示已儲存的圖片
         img_path = "./model/Loss&Acc_Relu.jpg"
-        if cv2.imread(img_path) is None:
+        try:
+            # 使用 PIL 讀取（支援中文路徑）
+            pil_img = Image.open(img_path)
+            img = np.array(pil_img.convert('RGB'))
+            img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)  # 轉換為 OpenCV 格式
+            cv2.imshow("LeNet Loss & Accuracy", img)
+        except FileNotFoundError:
             print("Loss image not found. Please train first.")
-            return
-        img = cv2.imread(img_path)
-        cv2.imshow("LeNet Loss & Accuracy", img)
 
     def predict_lenet(self):
         # [cite: 148, 153]
@@ -126,8 +130,14 @@ class MainWindow(QMainWindow):
             return
 
         # Preprocessing [cite: 125, 126]
-        img = cv2.imread(self.q1_image_path, cv2.IMREAD_GRAYSCALE)
-        img = cv2.resize(img, (32, 32))
+        # 使用 PIL 讀取（支援中文路徑）
+        try:
+            pil_img = Image.open(self.q1_image_path).convert('L')  # 灰階
+            img = np.array(pil_img)
+            img = cv2.resize(img, (32, 32))
+        except Exception as e:
+            print(f"Error loading image: {e}")
+            return
         # 反轉顏色 (黑底白字 -> 白底黑字 或相反，視訓練資料而定)
         # 投影片 MNIST 是黑底白字，如果輸入是白底黑字需要 bitwise_not
         # 這裡假設使用者測試圖為白底黑字，需轉為黑底白字 [cite: 161]
@@ -178,11 +188,14 @@ class MainWindow(QMainWindow):
     def show_resnet_acc_loss(self):
         # [cite: 290]
         img_path = "./model/Loss&Acc_ResNet.jpg"
-        if cv2.imread(img_path) is None:
+        try:
+            # 使用 PIL 讀取（支援中文路徑）
+            pil_img = Image.open(img_path)
+            img = np.array(pil_img.convert('RGB'))
+            img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)  # 轉換為 OpenCV 格式
+            cv2.imshow("ResNet Loss & Accuracy", img)
+        except FileNotFoundError:
             print("Loss image not found. Please train first.")
-            return
-        img = cv2.imread(img_path)
-        cv2.imshow("ResNet Loss & Accuracy", img)
 
     def predict_resnet(self):
         # [cite: 307]
@@ -231,15 +244,33 @@ class MainWindow(QMainWindow):
         self.plot_histogram(probs.cpu().numpy()[0], classes, title="Probability Distribution")
 
     # ================= Helper Functions =================
-    def show_image(self, path, grayscale=False):
+    def pil_to_cv2(self, pil_image, grayscale=False):
+        """將 PIL Image 轉換為 OpenCV 格式 (支援中文路徑)"""
         if grayscale:
-            img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-            img = cv2.resize(img, (32, 32)) # Resize for display consistent with model input [cite: 86]
-            img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB) # Convert back to RGB for Qt
+            pil_image = pil_image.convert('L')  # 轉為灰階
+            img = np.array(pil_image)
         else:
-            img = cv2.imread(path)
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            img = cv2.resize(img, (32, 32)) # [cite: 203]
+            pil_image = pil_image.convert('RGB')
+            img = np.array(pil_image)
+            img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)  # PIL 是 RGB, OpenCV 是 BGR
+        return img
+    
+    def show_image(self, path, grayscale=False):
+        try:
+            # 使用 PIL 讀取（支援中文路徑）
+            pil_img = Image.open(path)
+            if grayscale:
+                pil_img = pil_img.convert('L')  # 灰階
+                img = np.array(pil_img)
+                img = cv2.resize(img, (32, 32)) # Resize for display consistent with model input [cite: 86]
+                img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB) # Convert back to RGB for Qt
+            else:
+                pil_img = pil_img.convert('RGB')
+                img = np.array(pil_img)
+                img = cv2.resize(img, (32, 32)) # [cite: 203]
+        except Exception as e:
+            print(f"Error loading image {path}: {e}")
+            return
             
         # Resize to larger for GUI display (e.g., 400x400)
         img_display = cv2.resize(img, (400, 400), interpolation=cv2.INTER_NEAREST)
